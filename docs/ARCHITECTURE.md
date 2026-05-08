@@ -2,7 +2,7 @@
 
 This document describes the runtime architecture, request lifecycle, and the cross-cutting subsystems
 that maintainers must understand before changing core code paths. For product-level / non-technical
-context (user roles, features, workflows), see [`SYSTEM_OVERVIEW.md`](../SYSTEM_OVERVIEW.md).
+context (user roles, features, workflows), see [`SYSTEM_OVERVIEW.md`](SYSTEM_OVERVIEW.md).
 
 > Inline code comments reference this document by stable section anchors. Renaming sections will
 > break those references — prefer adding a new section over renaming an existing one.
@@ -394,7 +394,7 @@ A grep for the step id before any markup change is the only safety net.
 
 ## Further Reading
 
-- Product / feature overview: [`SYSTEM_OVERVIEW.md`](../SYSTEM_OVERVIEW.md)
+- Product / feature overview: [`SYSTEM_OVERVIEW.md`](SYSTEM_OVERVIEW.md)
 - Deployment, PM2, Apache, Docker layout: [`docs/DEPLOYMENT.md`](DEPLOYMENT.md)
 - Two-agent supervisor design notes: [`docs/two-agent-supervisor-system.md`](two-agent-supervisor-system.md)
 - API endpoint reference: [`docs/api-reference.md`](api-reference.md)

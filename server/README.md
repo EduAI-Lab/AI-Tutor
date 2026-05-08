@@ -84,7 +84,7 @@ The middleware chain in `app.js` processes requests in this order:
 
 ### Roles
 
-`STUDENT`, `PROFESSOR`, `TA` (unsupported), `ADMIN`. See [SYSTEM_OVERVIEW.md](../SYSTEM_OVERVIEW.md) for full permissions.
+`STUDENT`, `PROFESSOR`, `TA` (unsupported), `ADMIN`. See [SYSTEM_OVERVIEW.md](../docs/SYSTEM_OVERVIEW.md) for full permissions.
 
 ### Middleware
 
@@ -137,7 +137,7 @@ All routes are mounted under `/api`. See [docs/api-reference.md](../docs/api-ref
 
 ### Dual-Loop Supervisor
 
-Configurable via admin AI model policy. See [SYSTEM_OVERVIEW.md](../SYSTEM_OVERVIEW.md) for the conceptual explanation.
+Configurable via admin AI model policy. See [SYSTEM_OVERVIEW.md](../docs/SYSTEM_OVERVIEW.md) for the conceptual explanation.
 
 Implementation specifics:
 - Supervisor feedback is prepended to tutor retries as `[SUPERVISOR FEEDBACK: ...]`.

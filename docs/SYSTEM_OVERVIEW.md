@@ -17,6 +17,7 @@
 4. [Main Features](#4-main-features)
 5. [System Workflows](#5-system-workflows)
 6. [Future Work & Next Integrations](#6-future-work--next-integrations)
+7. [Codebase Walkthrough](#7-codebase-walkthrough)
 
 ---
 
@@ -681,6 +682,204 @@ However, **there is no dedicated analytics interface** for instructors. This dat
 | Medium | Instructor analytics dashboard | Data collection in place, UI not built |
 | Lower | Expanded activity types | Not started |
 | Lower | Broader deployment beyond UBC VPN | Infrastructure ready |
+
+---
+
+---
+
+## 7. Codebase Walkthrough
+
+This section is the technical companion to the product overview above. It is written for new
+developers who need to understand where the major pieces live and how a request moves through the
+system.
+
+### Repository Map
+
+```text
+app/                 React Router v7 SPA
+server/              Express 5 API, Prisma, Better Auth, EduAI integrations
+shared/schemas/      Zod schemas shared by frontend and backend
+docs/                Architecture, API, deployment, and system notes
+public/              Static assets
+scripts/             E2E and automation scripts
+```
+
+The application has two independently running halves:
+
+- **Frontend:** `app/`, served by Vite in development and static assets in production.
+- **Backend:** `server/`, an Express API on port `4000` backed by PostgreSQL.
+
+The frontend calls the backend with cookie credentials. The backend handles authentication,
+authorization, persistence, and EduAI API calls.
+
+### Frontend Tour (`app/`)
+
+Important files and directories:
+
+| Path | Purpose |
+|------|---------|
+| `app/root.tsx` | HTML shell and provider stack: auth, bug reports, guided tours |
+| `app/routes.ts` | Flat React Router route map |
+| `app/routes/` | Page-level route modules for home, student, instructor, and admin flows |
+| `app/components/` | Shared UI, activity cards, AI chat, guided tours, bug reports |
+| `app/hooks/useLocalUser.tsx` | Better Auth session state exposed through React context |
+| `app/lib/api.ts` | Central API client; all requests use `credentials: 'include'` |
+| `app/lib/client-auth.ts` | `requireClientUser(role)` route guard helper |
+| `app/lib/tours/` | Guided tour definitions, engine, storage, and tests |
+| `app/app.css` | Tailwind v4 theme and custom utility classes |
+
+Routes are flat rather than nested. The main paths are:
+
+| Path | Module | Role |
+|------|--------|------|
+| `/` | `home.tsx` | Public login |
+| `/student` | `student.tsx` | Student dashboard |
+| `/student/courses/:courseId` | `student.course.tsx` | Course view |
+| `/student/module/:moduleId` | `student.topic.tsx` | Module view |
+| `/student/lesson/:lessonId` | `student.list.tsx` | Lesson player |
+| `/instructor` | `instructor.tsx` | Instructor dashboard |
+| `/instructor/courses/:courseId` | `instructor.course.tsx` | Course editor |
+| `/instructor/module/:moduleId` | `instructor.topic.tsx` | Module editor |
+| `/instructor/lesson/:lessonId` | `instructor.list.tsx` | Lesson builder |
+| `/admin` | `admin.tsx` | Admin panel |
+
+Frontend state is intentionally simple: React context plus hooks. There is no Redux or Zustand.
+The most important contexts are auth/session, course topics, bug report capture, and guided tours.
+
+### Backend Tour (`server/`)
+
+Important files and directories:
+
+| Path | Purpose |
+|------|---------|
+| `server/src/index.js` | Loads env, creates the app, and listens on `PORT` |
+| `server/src/app.js` | Express app factory, middleware order, route mounting |
+| `server/src/auth.js` | Better Auth configuration with EduAI OAuth |
+| `server/src/middleware/auth.js` | Session hydration and role guards |
+| `server/src/routes/` | HTTP route handlers |
+| `server/src/services/` | Business logic for AI, analytics, cloning, sync, settings, bugs |
+| `server/src/utils/mappers.js` | Response shape mappers mirrored by frontend types |
+| `server/prisma/schema.prisma` | Database schema |
+| `server/prisma/seed.ts` | Destructive demo-data seed script |
+| `server/test/` | Vitest unit and integration tests |
+
+Backend request handling follows this shape:
+
+1. CORS allows the SPA to send cookies.
+2. Better Auth handles `/api/auth/*`.
+3. JSON parsing runs for application routes.
+4. `attachSession` resolves the Better Auth cookie and hydrates `req.user` from Prisma.
+5. API routes require `requireAuth`, `requireRole`, or `requireRoles`.
+6. Admin users are isolated to admin-safe endpoints.
+7. Route handlers orchestrate calls into services.
+8. Response mappers shape Prisma rows for the frontend.
+
+The route layer should stay thin. Business rules belong in `server/src/services/`, and request
+validation should use Zod schemas from `shared/schemas/` when a shared schema exists.
+
+### Database Model
+
+The core content hierarchy is:
+
+```text
+CourseOffering -> Module -> Lesson -> Activity
+```
+
+Related records track enrollments, instructors, submissions, activity feedback, topics, AI chat
+sessions, AI interaction traces, analytics, system settings, and Better Auth sessions/accounts.
+
+When schema changes are made, create a migration and refresh generated Prisma artifacts:
+
+```bash
+cd server
+bunx prisma migrate dev --name description_of_change
+bun run seed
+```
+
+The seed is destructive and clears existing rows before inserting demo data.
+
+### Authentication Path
+
+Authentication is EduAI OAuth through Better Auth:
+
+1. The user clicks **Sign in with EduAI** on the home page.
+2. Better Auth redirects to EduAI using OIDC + PKCE.
+3. EduAI redirects back and Better Auth stores a session cookie.
+4. The SPA calls `GET /api/me` through `AuthProvider`.
+5. Route loaders use `requireClientUser(role)` for frontend gating.
+6. Backend routes use `requireAuth`, `requireRole`, or `requireRoles` for enforcement.
+
+There is no JWT bearer-token flow in the current app. Client API calls must preserve
+`credentials: 'include'`.
+
+### AI Tutoring Path
+
+The AI tutoring engine lives primarily in `server/src/services/aiGuidance.js`.
+
+Student chat requests go through activity endpoints such as:
+
+- `POST /api/activities/:activityId/teach`
+- `POST /api/activities/:activityId/guide`
+- `POST /api/activities/:activityId/custom`
+
+Each mode builds context from the activity, topic, answer key, selected knowledge level, model
+policy, and optional user API key. The tutor response can then be reviewed by the dual-loop
+supervisor before it reaches the student. See
+[`two-agent-supervisor-system.md`](two-agent-supervisor-system.md) for the focused design notes.
+
+### Local Development
+
+Install dependencies:
+
+```bash
+bun install
+cd server && bun install
+```
+
+Start PostgreSQL:
+
+```bash
+docker compose up -d db
+```
+
+Apply migrations and seed demo data:
+
+```bash
+cd server
+bunx prisma migrate deploy
+bun run seed
+```
+
+Run the app in two terminals:
+
+```bash
+# Terminal 1: backend API
+cd server && bun run dev
+
+# Terminal 2: frontend SPA
+bun run dev
+```
+
+Useful verification commands:
+
+```bash
+bun run typecheck
+bun run typecheck:fast
+bun run lint
+bun run format:check
+bun run test
+cd server && bun run test
+```
+
+### Recommended Reading Order
+
+1. `README.md` for setup and the shortest project summary.
+2. This document for product context, roles, workflows, and the codebase map.
+3. `docs/ARCHITECTURE.md` for runtime architecture and core contracts.
+4. `app/README.md` for frontend details.
+5. `server/README.md` for backend details.
+6. `docs/api-reference.md` for endpoint shapes.
+7. `docs/DEPLOYMENT.md` for production layout.
 
 ---
 

@@ -110,7 +110,7 @@ The platform uses a two-agent architecture for AI-powered tutoring:
 1. **AI1 (Primary Tutor)** — Generates responses in one of three modes: Teach, Guide, or Custom
 2. **AI2 (Supervisor)** — Reviews AI1's output for pedagogical soundness (e.g., no answer leaking)
 
-The supervisor loop runs up to 3 iterations before falling back. Controlled by the `AI_SUPERVISOR_ENABLED` env var. See [`docs/two-agent-supervisor-system.md`](docs/two-agent-supervisor-system.md) for details.
+The supervisor loop runs up to 3 iterations before falling back. It is controlled by the admin AI model policy. See [`docs/two-agent-supervisor-system.md`](docs/two-agent-supervisor-system.md) for details.
 
 ### Topic Classification
 
@@ -130,7 +130,6 @@ Copy `server/.env.example` to `server/.env` and configure:
 | `EDUAI_API_KEY`         | For AI   | EduAI API key                                      |
 | `EDUAI_BASE_URL`        | For AI   | EduAI API base URL                                 |
 | `EDUAI_MODEL`           | For AI   | Model identifier (e.g., `google:gemini-2.5-flash`) |
-| `AI_SUPERVISOR_ENABLED` | No       | Enable two-agent review (default: `true`)          |
 
 Frontend env var:
 

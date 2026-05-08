@@ -6,7 +6,7 @@ about to ship a change, read this end-to-end first.
 
 For the runtime architecture (request lifecycle, auth, AI loop), see
 [`docs/ARCHITECTURE.md`](ARCHITECTURE.md). For product context, see
-[`SYSTEM_OVERVIEW.md`](../SYSTEM_OVERVIEW.md).
+[`SYSTEM_OVERVIEW.md`](SYSTEM_OVERVIEW.md).
 
 ---
 
